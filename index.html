@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cubes (2025 Revival)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <style>
+    body { margin:0; overflow:hidden; background:#000; touch-action:none; }
+    #ui {
+      position:absolute; top:10px; left:10px; color:white; font-family:Arial, sans-serif; z-index:10;
+    }
+    button { padding:10px 20px; font-size:18px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div>Score: <span id="score">0</span> / <span id="target">1000</span></div>
+    <div>Level <span id="level">1</span></div>
+    <button id="removeBtn" disabled>Remove Chain</button>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
