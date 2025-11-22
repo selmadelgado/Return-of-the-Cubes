@@ -1,5 +1,7 @@
-import * as THREE from 'https://unpkg.com/three@0.168.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.168.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js';
+
+console.log('Cubes loaded! Three.js version:', THREE.REVISION); // Debug: Confirms script runs
 
 const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff8800, 0xff00ff];
 const SIZE = 5;
@@ -13,15 +15,17 @@ init();
 animate();
 
 function init() {
+  console.log('Init started'); // Debug
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x111111);
 
-  camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+  camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(10, 10, 10);
 
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(innerWidth, innerHeight);
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
+  console.log('Renderer created, size:', renderer.domElement.width, 'x', renderer.domElement.height); // Debug
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -34,9 +38,12 @@ function init() {
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
   createCube();
+  console.log('Cube created with', SIZE * SIZE * SIZE, 'cubes'); // Debug
+
   window.addEventListener('resize', onResize);
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
   document.getElementById('removeBtn').addEventListener('click', removeChain);
+  console.log('Event listeners added'); // Debug
 }
 
 function createCube() {
@@ -49,14 +56,14 @@ function createCube() {
       for (let z = 0; z < SIZE; z++) {
         const color = COLORS[Math.floor(Math.random() * COLORS.length)];
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshLambertMaterial({color});
+        const material = new THREE.MeshLambertMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(
-          (x - SIZE/2 + 0.5) * CELL,
-          (y - SIZE/2 + 0.5) * CELL,
-          (z - SIZE/2 + 0.5) * CELL
+          (x - SIZE / 2 + 0.5) * CELL,
+          (y - SIZE / 2 + 0.5) * CELL,
+          (z - SIZE / 2 + 0.5) * CELL
         );
-        mesh.userData = {x, y, z, color, active:true};
+        mesh.userData = { x, y, z, color, active: true };
         scene.add(mesh);
         cubes[x][y][z] = mesh;
       }
@@ -67,33 +74,30 @@ function createCube() {
 function onPointerDown(e) {
   if (e.button !== 0) return;
   const rect = renderer.domElement.getBoundingClientRect();
-  const x = ((e.clientX || e.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
-  const y = -((e.clientY || e.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
+  const x = ((e.clientX || e.touches?.[0]?.clientX) - rect.left) / rect.width * 2 - 1;
+  const y = -((e.clientY || e.touches?.[0]?.clientY) - rect.top) / rect.height * 2 + 1;
 
   const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera({x, y}, camera);
-  const intersects = raycaster.intersectObjects(scene.children);
+  raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+  const intersects = raycaster.intersectObjects(scene.children, true);
 
   if (intersects.length > 0) {
     const cube = intersects[0].object;
-    if (cube.userData.active) selectCube(cube);
+    if (cube.userData?.active) selectCube(cube);
   }
 }
 
 function selectCube(cube) {
   if (!cube.userData.active) return;
   if (selected.includes(cube)) {
-    // double-tap → remove
     if (selected.length >= 2) removeChain();
     return;
   }
 
-  // reset previous selection
   selected.forEach(c => c.material.emissive?.setHex(0x000000));
   selected = [cube];
   cube.material.emissive.setHex(0x555555);
 
-  // flood-fill same color adjacent (full 3D + diagonals)
   const toCheck = [cube];
   const color = cube.userData.color;
   const visited = new Set();
@@ -105,19 +109,22 @@ function selectCube(cube) {
     selected.push(current);
     current.material.emissive.setHex(0x888888);
 
-    const {x,y,z} = current.userData;
-    for (let dx=-1; dx<=1; dx++)
-      for (let dy=-1; dy<=1; dy++)
-        for (let dz=-1; dz<=1; dz++) {
-          if (dx||dy||dz) {
-            const nx = x+dx, ny=y+dy, nz=z+dz;
-            if (nx>=0&&nx<SIZE && ny>=0&&ny<SIZE && nz>=0&&nz<SIZE) {
+    const { x, y, z } = current.userData;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          if (dx || dy || dz) {
+            const nx = x + dx, ny = y + dy, nz = z + dz;
+            if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
               const neighbor = cubes[nx][ny][nz];
-              if (neighbor && neighbor.userData.active && neighbor.userData.color === color && !visited.has(neighbor))
+              if (neighbor && neighbor.userData.active && neighbor.userData.color === color && !visited.has(neighbor)) {
                 toCheck.push(neighbor);
+              }
             }
           }
         }
+      }
+    }
   }
 
   document.getElementById('removeBtn').disabled = selected.length < 2;
@@ -126,7 +133,7 @@ function selectCube(cube) {
 function removeChain() {
   if (selected.length < 2) return;
 
-  const points = selected.length ** (selected.length - 1);
+  const points = Math.pow(selected.length, selected.length - 1);
   score += points;
   document.getElementById('score').textContent = score;
 
@@ -140,7 +147,6 @@ function removeChain() {
 
   selected = [];
   document.getElementById('removeBtn').disabled = true;
-  selected.forEach(c => c.material.emissive?.setHex(0x000000));
 
   if (score >= target) {
     level++;
@@ -154,34 +160,41 @@ function applyGravity() {
   let fell = true;
   while (fell) {
     fell = false;
-    for (let x = 0; x < SIZE; x++)
-      for (let z = 0; z < SIZE; z++)
+    for (let x = 0; x < SIZE; x++) {
+      for (let z = 0; z < SIZE; z++) {
         for (let y = 1; y < SIZE; y++) {
           const cube = cubes[x][y][z];
-          const below = cubes[x][y-1][z];
+          const below = cubes[x][y - 1][z];
           if (cube.userData.active && !below.userData.active) {
-            // swap
-            scene.remove(cube);
-            scene.add(cube);
-            below.userData = cube.userData;
-            below.material.color.set(cube.userData.color);
-            below.material.opacity = 1;
-            below.material.transparent = false;
-            cube.userData.active = false;
+            // Swap positions and data
+            const tempUserData = cube.userData;
+            const tempMaterial = cube.material;
+            cube.userData = below.userData;
+            cube.material = below.material;
+            below.userData = tempUserData;
+            below.material = tempMaterial;
+            
+            // Update array refs
             cubes[x][y][z] = below;
-            cubes[x][y-1][z] = cube;
-            cube.position.y -= CELL;
-            below.position.y += CELL;
+            cubes[x][y - 1][z] = cube;
+            
+            // Animate swap
+            const tempY = cube.position.y;
+            cube.position.y = below.position.y;
+            below.position.y = tempY;
+            
             fell = true;
           }
         }
+      }
+    }
   }
 }
 
 function onResize() {
-  camera.aspect = innerWidth/innerHeight;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function animate() {
