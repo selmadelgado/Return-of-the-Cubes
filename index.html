@@ -5,11 +5,10 @@
   <title>Return of the Cubes (2008–2025)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <style>
-    body { margin:0; overflow:hidden; background:#111; touch-action:none; }
-    #ui { position:absolute; top:10px; left:10px; color:#fff; z-index:10; background:rgba(0,0,0,0.5); padding:12px; border-radius:8px; font-family:Arial; }
+    body { margin:0; overflow:hidden; background:#111; touch-action:none; font-family:Arial; }
+    #ui { position:absolute; top:10px; left:10px; color:#fff; z-index:10; background:rgba(0,0,0,0.5); padding:12px; border-radius:8px; }
     button { padding:12px 24px; font-size:18px; margin-top:8px; border:none; border-radius:6px; background:#555; color:#fff; }
     button:enabled { background:#08f; cursor:pointer; }
-    #resetBtn { background:#f80; margin-left:10px; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -17,9 +16,8 @@
 <body>
   <div id="ui">
     <div style="font-size:24px;">Score: <span id="score">0</span> / <span id="target">1000</span></div>
-    <div style="font-size:20px;">Level <span id="level">1</span></div>
+    <div style="font-size:20px;">Level <span id="level">1</span> | Press 'R' to reset view</div>
     <button id="removeBtn" disabled>Remove Chain</button>
-    <button id="resetBtn">Reset View</button>
   </div>
 
   <script>
@@ -31,22 +29,22 @@
     function init() {
       scene = new THREE.Scene(); scene.background = new THREE.Color(0x111111);
       camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-      camera.position.set(0, 0, 12); // Fixed center view
       renderer = new THREE.WebGLRenderer({antialias:true});
       renderer.setSize(innerWidth, innerHeight);
       document.body.appendChild(renderer.domElement);
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.enablePan = false; // No panning
-      controls.enableZoom = false; // No zoom
-      controls.target.set(0, 0, 0); // Lock to center
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.target.set(0, 0, 0);
+      camera.position.set(0, 0, 12); // Guaranteed center view
       scene.add(new THREE.AmbientLight(0xffffff, 0.6));
       scene.add(new THREE.DirectionalLight(0xffffff, 1.2)).position.set(5,10,7);
       createCube();
       window.addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
       document.getElementById('removeBtn').addEventListener('click', removeChain);
-      document.getElementById('resetBtn').addEventListener('click', resetView);
+      window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'r') resetView(); });
       animate();
     }
 
@@ -86,7 +84,7 @@
         cur.material.emissive.setHex(0x888888);
         const {x,y,z}=cur.userData;
         for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
-          if(Math.abs(dx) + Math.abs(dy) + Math.abs(dz) === 1){ // Orthogonal only
+          if(Math.abs(dx) + Math.abs(dy) + Math.abs(dz) === 1){
             const nx=x+dx,ny=y+dy,nz=z+dz;
             if(nx>=0&&nx<SIZE&&ny>=0&&ny<SIZE&&nz>=0&&nz<SIZE){
               const n=cubes[nx][ny][nz];
