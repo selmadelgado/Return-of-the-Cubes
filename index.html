@@ -73,8 +73,8 @@
         const cur = queue.pop(); if(visited.has(cur)) continue; visited.add(cur); selected.push(cur);
         cur.material.emissive.setHex(0x888888);
         const {x,y,z}=cur.userData;
-        for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
-          if(dx||dy||dz){
+       for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
+  if(Math.abs(dx)+Math.abs(dy)+Math.abs(dz) > 0){
             const nx=x+dx,ny=y+dy,nz=z+dz;
             if(nx>=0&&nx<SIZE&&ny>=0&&ny<SIZE&&nz>=0&&nz<SIZE){
               const n=cubes[nx][ny][nz];
