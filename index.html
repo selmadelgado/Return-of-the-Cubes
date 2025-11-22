@@ -25,7 +25,7 @@
   </div>
 
   <script>
-    console.log('Cubes 2025 loaded – Global Three.js r128 (no modules!)');
+    console.log('Cubes 2025 loaded – Global Three.js r128 (selection fix!)');
 
     const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff8800, 0xff00ff];
     const SIZE = 5;
@@ -34,6 +34,8 @@
     let cubes = [];
     let selected = [];
     let score = 0, level = 1, target = 1000;
+    let lastClickTime = 0;
+    let clickStartCube = null;
 
     // ---------- INIT ----------
     function init() {
@@ -62,6 +64,7 @@
 
       window.addEventListener('resize', onResize);
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
+      renderer.domElement.addEventListener('dblclick', onDoubleClick); // Extra double-click support
       document.getElementById('removeBtn').addEventListener('click', removeChain);
     }
 
@@ -91,6 +94,7 @@
     }
 
     function onPointerDown(e) {
+      console.log('Click detected!'); // Debug log
       if (e.button !== 0) return;
       const rect = renderer.domElement.getBoundingClientRect();
       const x = ((e.clientX || e.touches?.[0]?.clientX) - rect.left) / rect.width * 2 - 1;
@@ -102,11 +106,24 @@
 
       if (intersects.length > 0) {
         const cube = intersects[0].object;
-        if (cube.userData?.active) selectCube(cube);
+        console.log('Hit cube at position:', cube.position); // Debug
+        if (cube.userData?.active) {
+          clickStartCube = cube;
+          selectCube(cube);
+        }
       }
     }
 
+    function onDoubleClick(e) {
+      if (selected.length >= 2 && Date.now() - lastClickTime < 300) {
+        console.log('Double-click: Removing chain!');
+        removeChain();
+      }
+      lastClickTime = Date.now();
+    }
+
     function selectCube(cube) {
+      console.log('Selecting cube, active:', cube.userData.active); // Debug
       if (!cube.userData.active) return;
       if (selected.includes(cube)) {
         if (selected.length >= 2) removeChain();
@@ -148,6 +165,7 @@
         }
       }
 
+      console.log('Chain selected:', selected.length, 'cubes'); // Debug
       document.getElementById('removeBtn').disabled = selected.length < 2;
     }
 
@@ -157,6 +175,7 @@
       const points = Math.pow(selected.length, selected.length - 1);
       score += points;
       document.getElementById('score').textContent = score;
+      console.log('Chain removed! Points:', points, 'Total score:', score); // Debug
 
       selected.forEach(c => {
         c.userData.active = false;
@@ -199,6 +218,7 @@
           }
         }
       }
+      console.log('Gravity applied!'); // Debug
     }
 
     function onResize() {
