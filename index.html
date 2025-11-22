@@ -5,16 +5,12 @@
   <title>Return of the Cubes (2008–2025)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <style>
-    body { margin:0; overflow:hidden; background:#000; touch-action:none; font-family:Arial, sans-serif; }
-    #ui {
-      position:absolute; top:10px; left:10px; color:white; z-index:10; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px;
-    }
-    button { padding:12px 24px; font-size:18px; margin-top:10px; border:none; border-radius:6px; background:#555; color:white; }
-    button:enabled { background:#0af; cursor:pointer; }
+    body { margin:0; overflow:hidden; background:#111; touch-action:none; }
+    #ui { position:absolute; top:10px; left:10px; color:#fff; z-index:10; background:rgba(0,0,0,0.5); padding:12px; border-radius:8px; font-family:Arial; }
+    button { padding:12px 24px; font-size:18px; margin-top:8px; border:none; border-radius:6px; background:#555; color:#fff; }
+    button:enabled { background:#08f; cursor:pointer; }
   </style>
-  <!-- Global Three.js (non-module, bulletproof) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Bundled OrbitControls for global THREE -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
@@ -25,218 +21,119 @@
   </div>
 
   <script>
-    console.log('Cubes 2025 loaded – Global Three.js r128 (selection fix!)');
-
-    const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff8800, 0xff00ff];
-    const SIZE = 5;
-    const CELL = 1.1;
-    let scene, camera, renderer, controls;
-    let cubes = [];
-    let selected = [];
+    const COLORS = [0xff3333, 0x33ff33, 0x4444ff, 0xffff33, 0xffaa00, 0xff33ff];
+    const SIZE = 5, CELL = 1.1;
+    let scene, camera, renderer, controls, cubes = [], selected = [];
     let score = 0, level = 1, target = 1000;
-    let lastClickTime = 0;
-    let clickStartCube = null;
 
-    // ---------- INIT ----------
     function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x111111);
-
-      camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-      camera.position.set(10, 10, 10);
-
-      renderer = new THREE.WebGLRenderer({antialias: true});
+      scene = new THREE.Scene(); scene.background = new THREE.Color(0x111111);
+      camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+      camera.position.set(10,10,10);
+      renderer = new THREE.WebGLRenderer({antialias:true});
       renderer.setSize(innerWidth, innerHeight);
       document.body.appendChild(renderer.domElement);
-
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.rotateSpeed = 0.5;
-
-      const light = new THREE.DirectionalLight(0xffffff, 1.5);
-      light.position.set(5, 10, 7);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      scene.add(new THREE.DirectionalLight(0xffffff, 1.2)).position.set(5,10,7);
       createCube();
-      console.log('5x5x5 Cube created with 125 colorful cubes!');
-
-      window.addEventListener('resize', onResize);
+      window.addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
       renderer.domElement.addEventListener('pointerdown', onPointerDown);
-      renderer.domElement.addEventListener('dblclick', onDoubleClick); // Extra double-click support
       document.getElementById('removeBtn').addEventListener('click', removeChain);
+      animate();
     }
 
     function createCube() {
-      cubes = [];
-      selected = [];
-      for (let x = 0; x < SIZE; x++) {
-        cubes[x] = [];
-        for (let y = 0; y < SIZE; y++) {
-          cubes[x][y] = [];
-          for (let z = 0; z < SIZE; z++) {
-            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshLambertMaterial({ color });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(
-              (x - SIZE / 2 + 0.5) * CELL,
-              (y - SIZE / 2 + 0.5) * CELL,
-              (z - SIZE / 2 + 0.5) * CELL
-            );
-            mesh.userData = { x, y, z, color, active: true };
-            scene.add(mesh);
-            cubes[x][y][z] = mesh;
-          }
-        }
-      }
+      cubes = []; selected = [];
+      for(let x=0;x<SIZE;x++){ cubes[x]=[]; for(let y=0;y<SIZE;y++){ cubes[x][y]=[]; for(let z=0;z<SIZE;z++){
+        const col = COLORS[Math.floor(Math.random()*6)];
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color:col}));
+        mesh.position.set((x-SIZE/2+0.5)*CELL, (y-SIZE/2+0.5)*CELL, (z-SIZE/2+0.5)*CELL);
+        mesh.userData = {x,y,z,color:col,active:true};
+        scene.add(mesh); cubes[x][y][z] = mesh;
+      }}}
     }
 
     function onPointerDown(e) {
-      console.log('Click detected!'); // Debug log
-      if (e.button !== 0) return;
       const rect = renderer.domElement.getBoundingClientRect();
-      const x = ((e.clientX || e.touches?.[0]?.clientX) - rect.left) / rect.width * 2 - 1;
-      const y = -((e.clientY || e.touches?.[0]?.clientY) - rect.top) / rect.height * 2 + 1;
-
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
-      const intersects = raycaster.intersectObjects(scene.children);
-
-      if (intersects.length > 0) {
-        const cube = intersects[0].object;
-        console.log('Hit cube at position:', cube.position); // Debug
-        if (cube.userData?.active) {
-          clickStartCube = cube;
-          selectCube(cube);
-        }
-      }
-    }
-
-    function onDoubleClick(e) {
-      if (selected.length >= 2 && Date.now() - lastClickTime < 300) {
-        console.log('Double-click: Removing chain!');
-        removeChain();
-      }
-      lastClickTime = Date.now();
+      const x = ((e.clientX||e.touches?.[0]?.clientX)-rect.left)/rect.width*2-1;
+      const y = -((e.clientY||e.touches?.[0]?.clientY)-rect.top)/rect.height*2+1;
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera({x,y}, camera);
+      const hit = ray.intersectObjects(scene.children)[0];
+      if (hit && hit.object.userData.active) selectCube(hit.object);
     }
 
     function selectCube(cube) {
-      console.log('Selecting cube, active:', cube.userData.active); // Debug
-      if (!cube.userData.active) return;
-      if (selected.includes(cube)) {
-        if (selected.length >= 2) removeChain();
-        return;
-      }
-
-      // Reset previous selection
-      selected.forEach(c => c.material.emissive?.setHex(0x000000));
-      selected = [cube];
-      cube.material.emissive.setHex(0x555555);
-
-      // Flood-fill 3D chain (full adjacency including diagonals)
-      const toCheck = [cube];
-      const color = cube.userData.color;
-      const visited = new Set();
-
-      while (toCheck.length) {
-        const current = toCheck.pop();
-        if (visited.has(current)) continue;
-        visited.add(current);
-        selected.push(current);
-        current.material.emissive.setHex(0x888888);
-
-        const { x, y, z } = current.userData;
-        for (let dx = -1; dx <= 1; dx++) {
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dz = -1; dz <= 1; dz++) {
-              if (dx || dy || dz) {
-                const nx = x + dx, ny = y + dy, nz = z + dz;
-                if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && nz >= 0 && nz < SIZE) {
-                  const neighbor = cubes[nx][ny][nz];
-                  if (neighbor && neighbor.userData.active && neighbor.userData.color === color && !visited.has(neighbor)) {
-                    toCheck.push(neighbor);
-                  }
-                }
-              }
+      selected.forEach(c=>c.material.emissive.setHex(0));
+      selected = [cube]; cube.material.emissive.setHex(0x666666);
+      const queue = [cube], color = cube.userData.color, visited = new Set();
+      while(queue.length){
+        const cur = queue.pop(); if(visited.has(cur)) continue; visited.add(cur); selected.push(cur);
+        cur.material.emissive.setHex(0x888888);
+        const {x,y,z}=cur.userData;
+        for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)for(let dz=-1;dz<=1;dz++){
+          if(dx||dy||dz){
+            const nx=x+dx,ny=y+dy,nz=z+dz;
+            if(nx>=0&&nx<SIZE&&ny>=0&&ny<SIZE&&nz>=0&&nz<SIZE){
+              const n=cubes[nx][ny][nz];
+              if(n&&n.userData.active&&n.userData.color===color&&!visited.has(n)) queue.push(n);
             }
           }
         }
       }
-
-      console.log('Chain selected:', selected.length, 'cubes'); // Debug
       document.getElementById('removeBtn').disabled = selected.length < 2;
     }
 
     function removeChain() {
-      if (selected.length < 2) return;
+      if(selected.length<2) return;
+      const points = Math.pow(selected.length, selected.length-1);
+      score += points; document.getElementById('score').textContent = score;
 
-      const points = Math.pow(selected.length, selected.length - 1);
-      score += points;
-      document.getElementById('score').textContent = score;
-      console.log('Chain removed! Points:', points, 'Total score:', score); // Debug
-
-      selected.forEach(c => {
+      // Pull-out animation
+      selected.forEach(c=>{
         c.userData.active = false;
-        c.material.transparent = true;
-        c.material.opacity = 0.3;
+        gsap.to(c.scale, {x:0,y:0,z:0, duration:0.4});
+        gsap.to(c.material, {opacity:0, duration:0.4});
       });
 
-      applyGravity();
-
+      setTimeout(applyGravity, 450);
       selected = [];
       document.getElementById('removeBtn').disabled = true;
 
-      if (score >= target) {
-        level++;
-        target = level * 1000 + 500;
+      if(score >= target){
+        level++; target = level*1000+500;
         document.getElementById('level').textContent = level;
         document.getElementById('target').textContent = target;
-        createCube(); // New level puzzle
+        setTimeout(createCube, 800);
       }
     }
 
     function applyGravity() {
-      let fell = true;
-      while (fell) {
-        fell = false;
-        for (let x = 0; x < SIZE; x++) {
-          for (let z = 0; z < SIZE; z++) {
-            for (let y = 1; y < SIZE; y++) {
-              const cube = cubes[x][y][z];
-              const below = cubes[x][y - 1][z];
-              if (cube.userData.active && !below.userData.active) {
-                // Swap positions
-                const tempY = cube.position.y;
-                cube.position.y = below.position.y;
-                below.position.y = tempY;
-                [cubes[x][y][z], cubes[x][y - 1][z]] = [below, cube];
-                fell = true;
-              }
-            }
+      let moved;
+      do {
+        moved = false;
+        for(let x=0;x<SIZE;x++) for(let z=0;z<SIZE;z++) for(let y=1;y<SIZE;y++){
+          const cube = cubes[x][y][z];
+          const below = cubes[x][y-1][z];
+          if(cube.userData.active && !below.userData.active){
+            cubes[x][y][z] = below; cubes[x][y-1][z] = cube;
+            const tempY = cube.position.y;
+            gsap.to(cube.position, {y: below.position.y, duration:0.3});
+            cube.position.y = below.position.y; below.position.y = tempY;
+            moved = true;
           }
         }
-      }
-      console.log('Gravity applied!'); // Debug
+      } while(moved);
     }
 
-    function onResize() {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-    }
-
-    // ---------- ANIMATION LOOP ----------
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
-    // Start the game!
+    function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
     init();
-    animate();
+    // tiny gsap for smooth pull-out & fall
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js';
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
