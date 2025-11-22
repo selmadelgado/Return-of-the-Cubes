@@ -1,5 +1,5 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'https://unpkg.com/three@0.168.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.168.0/examples/jsm/controls/OrbitControls.js';
 
 const COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff8800, 0xff00ff];
 const SIZE = 5;
