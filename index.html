@@ -10,49 +10,51 @@
     button { padding:12px 24px; font-size:18px; margin-top:8px; border:none; border-radius:6px; background:#555; color:#fff; }
     button:enabled { background:#08f; cursor:pointer; }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
   <div id="ui">
     <div style="font-size:24px;">Score: <span id="score">0</span> / <span id="target">1000</span></div>
-    <div style="font-size:20px;">Level <span id="level">1</span> | Press 'R' to reset view</div>
+    <div style="font-size:20px;">Level <span id="level">1</span></div>
     <button id="removeBtn" disabled>Remove Chain</button>
   </div>
 
-  <script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    console.log('Cubes loaded – Three.js module version');
+
     const COLORS = [0xff3333, 0x33ff33, 0x4444ff, 0xffff33, 0xffaa00, 0xff33ff];
     const SIZE = 5, CELL = 1.1;
     let scene, camera, renderer, controls, cubes = [], selected = [];
     let score = 0, level = 1, target = 1000;
 
-    function init() {
-      scene = new THREE.Scene(); scene.background = new THREE.Color(0x111111);
-      camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-      renderer = new THREE.WebGLRenderer({antialias:true});
-      renderer.setSize(innerWidth, innerHeight);
-      document.body.appendChild(renderer.domElement);
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.enablePan = false;
-      controls.enableZoom = false;
-      controls.target.set(0, 0, 0);
-      camera.position.set(0, 0, 12); // Guaranteed center view
-      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-      scene.add(new THREE.DirectionalLight(0xffffff, 1.2)).position.set(5,10,7);
-      createCube();
-      window.addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
-      renderer.domElement.addEventListener('pointerdown', onPointerDown);
-      document.getElementById('removeBtn').addEventListener('click', removeChain);
-      window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'r') resetView(); });
-      animate();
-    }
-
-    function resetView() {
-      camera.position.set(0, 0, 12);
-      controls.target.set(0, 0, 0);
-      controls.update();
-    }
+    scene = new THREE.Scene(); scene.background = new THREE.Color(0x111111);
+    camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 12);
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.target.set(0, 0, 0);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.DirectionalLight(0xffffff, 1.2)).position.set(5,10,7);
+    createCube();
+    window.addEventListener('resize', ()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    document.getElementById('removeBtn').addEventListener('click', removeChain);
+    animate();
 
     function createCube() {
       cubes = []; selected = [];
@@ -63,6 +65,7 @@
         mesh.userData = {x,y,z,color:col,active:true};
         scene.add(mesh); cubes[x][y][z] = mesh;
       }}}
+      console.log('Cube created!');
     }
 
     function onPointerDown(e) {
@@ -138,7 +141,6 @@
     }
 
     function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
-    init();
   </script>
 </body>
 </html>
